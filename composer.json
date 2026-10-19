@@ -33,9 +33,9 @@
         "magento/module-sales-rule": "*",
         "magento/module-store": "*",
         "magento/module-ui": "*",
-        "fixstacks/module-zero-core": "^1.2",
-        "fixstacks/module-zero-cms": "^1.2",
-        "fixstacks/module-zero-banner": "^1.2"
+        "fixstacks/module-zero-core": "^1.1",
+        "fixstacks/module-zero-cms": "^1.1",
+        "fixstacks/module-zero-banner": "^1.1"
     },
     "autoload": {
         "files": [
