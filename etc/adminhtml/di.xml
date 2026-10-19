@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    "Schedule a Change" on the forms of what a campaign can change, and the
+    content editor's "Schedule…".
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Zero\Cms\ViewModel\Adminhtml\Editor">
+        <plugin name="zero_staging" type="Zero\Staging\Plugin\Adminhtml\EditorConfig"/>
+    </type>
+    <virtualType name="Zero\Staging\Block\Adminhtml\ScheduleProduct" type="Zero\Staging\Block\Adminhtml\ScheduleButton">
+        <arguments>
+            <argument name="target" xsi:type="string">product</argument>
+            <argument name="idParam" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Block\Adminhtml\ScheduleCategory" type="Zero\Staging\Block\Adminhtml\ScheduleButton">
+        <arguments>
+            <argument name="target" xsi:type="string">category</argument>
+            <argument name="idParam" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Block\Adminhtml\SchedulePage" type="Zero\Staging\Block\Adminhtml\ScheduleButton">
+        <arguments>
+            <argument name="target" xsi:type="string">cms_page</argument>
+            <argument name="idParam" xsi:type="string">page_id</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Block\Adminhtml\ScheduleBlock" type="Zero\Staging\Block\Adminhtml\ScheduleButton">
+        <arguments>
+            <argument name="target" xsi:type="string">cms_block</argument>
+            <argument name="idParam" xsi:type="string">block_id</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Block\Adminhtml\ScheduleBanner" type="Zero\Staging\Block\Adminhtml\ScheduleButton">
+        <arguments>
+            <argument name="target" xsi:type="string">banner_slide</argument>
+            <argument name="idParam" xsi:type="string">banner_id</argument>
+            <argument name="filterParam" xsi:type="string">banner</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Block\Adminhtml\ScheduleCatalogRule" type="Zero\Staging\Block\Adminhtml\ScheduleButton">
+        <arguments>
+            <argument name="target" xsi:type="string">catalog_rule</argument>
+            <argument name="idParam" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Block\Adminhtml\ScheduleCartRule" type="Zero\Staging\Block\Adminhtml\ScheduleButton">
+        <arguments>
+            <argument name="target" xsi:type="string">cart_rule</argument>
+            <argument name="idParam" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+</config>

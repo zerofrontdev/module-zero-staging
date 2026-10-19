@@ -1,0 +1,187 @@
+<?php
+/**
+ * Copyright © 2026 Roman Pasichnyk
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ *
+ * A change, in up to three steps on one page: what kind of thing, which one
+ * (a search), then the store view, the fields to set and the campaign.
+ *
+ * @var \Magento\Backend\Block\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+/** @var \Zero\Staging\ViewModel\Adminhtml\Staging $staging */
+$staging = $block->getData('view_model');
+$subject = $staging->subject();
+$target = $staging->target();
+$entityLabel = $staging->entityLabel();
+$campaigns = $staging->scheduledCampaigns();
+$here = fn (array $params) => $staging->url('zero_staging/change/edit', array_filter($params + [
+    'campaign' => $subject['campaign'],
+    'draft' => $subject['draft'],
+]));
+$back = $subject['campaign']
+    ? $staging->url('zero_staging/campaign/edit', ['id' => $subject['campaign']])
+    : $staging->url('zero_staging/campaign/index');
+?>
+<div class="zst">
+    <div class="zst-bar">
+        <a class="action-tertiary" href="<?= $escaper->escapeUrl($back) ?>">← <?= $escaper->escapeHtml($subject['campaign'] ? __('Campaign') : __('Campaigns')) ?></a>
+    </div>
+
+    <?php if (!$target): ?>
+        <h2 class="zst-title"><?= $escaper->escapeHtml(__('What should change?')) ?></h2>
+        <ul class="zst-kinds">
+            <?php foreach ($staging->targetOptions() as $code => $label): ?>
+                <li><a class="action-secondary" href="<?= $escaper->escapeUrl($here(['target' => $code])) ?>"><?= $escaper->escapeHtml($label) ?></a></li>
+            <?php endforeach; ?>
+        </ul>
+
+    <?php elseif (!$subject['entity'] || $entityLabel === null): ?>
+        <h2 class="zst-title"><?= $escaper->escapeHtml(__('Which %1?', mb_strtolower($target->label()))) ?></h2>
+        <form class="zst-search" method="get" action="<?= $escaper->escapeUrl($here(['target' => $subject['target']])) ?>">
+            <?php if ($subject['banner']): ?>
+                <input type="hidden" name="banner" value="<?= (int) $subject['banner'] ?>">
+            <?php endif; ?>
+            <label class="admin__visually-hidden" for="zst-q"><?= $escaper->escapeHtml(__('Search')) ?></label>
+            <input id="zst-q" class="admin__control-text" type="search" name="q" value="<?= $escaper->escapeHtmlAttr($subject['query']) ?>" placeholder="<?= $escaper->escapeHtmlAttr(__('Name, SKU, identifier…')) ?>" autofocus>
+            <button type="submit" class="action-secondary"><?= $escaper->escapeHtml(__('Search')) ?></button>
+            <a href="<?= $escaper->escapeUrl($here([])) ?>"><?= $escaper->escapeHtml(__('Something else')) ?></a>
+        </form>
+        <?php $results = $staging->searchResults(); ?>
+        <?php if ($results): ?>
+            <ul class="zst-results">
+                <?php foreach ($results as $id => $label): ?>
+                    <li><a href="<?= $escaper->escapeUrl($here(['target' => $subject['target'], 'entity' => $id, 'store' => $subject['store']])) ?>"><?= $escaper->escapeHtml($label) ?></a></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else: ?>
+            <p class="zst-empty"><?= $escaper->escapeHtml(__('Nothing found.')) ?></p>
+        <?php endif; ?>
+
+    <?php else: ?>
+        <?php $fields = $staging->formFields(); ?>
+        <h2 class="zst-title">
+            <small class="zst-kind"><?= $escaper->escapeHtml($target->label()) ?></small>
+            <?= $escaper->escapeHtml($entityLabel) ?>
+            <?php if ($target->adminUrl($subject['entity']) !== ''): ?>
+                <a class="zst-title-link" href="<?= $escaper->escapeUrl($target->adminUrl($subject['entity'])) ?>"><?= $escaper->escapeHtml(__('Open')) ?></a>
+            <?php endif; ?>
+        </h2>
+
+        <?php if ($target->isStoreScoped() && count($staging->stores()) > 1): ?>
+            <form class="zst-store-switch" method="get" action="<?= $escaper->escapeUrl($here(['target' => $subject['target'], 'entity' => $subject['entity']])) ?>" data-zst-autosubmit>
+                <label for="zst-store"><?= $escaper->escapeHtml(__('Store View')) ?></label>
+                <select id="zst-store" class="admin__control-select" name="store"<?= $staging->change() ? ' disabled' : '' ?>>
+                    <?php foreach ($staging->stores() as $storeId => $label): ?>
+                        <option value="<?= (int) $storeId ?>"<?= $storeId === $subject['store'] ? ' selected' : '' ?>><?= $escaper->escapeHtml($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <noscript><button type="submit" class="action-tertiary"><?= $escaper->escapeHtml(__('Show')) ?></button></noscript>
+            </form>
+        <?php endif; ?>
+
+        <form method="post" action="<?= $escaper->escapeUrl($staging->url('zero_staging/change/save')) ?>">
+            <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($staging->formKey()) ?>">
+            <input type="hidden" name="target" value="<?= $escaper->escapeHtmlAttr($subject['target']) ?>">
+            <input type="hidden" name="entity" value="<?= (int) $subject['entity'] ?>">
+            <input type="hidden" name="store" value="<?= (int) $subject['store'] ?>">
+            <input type="hidden" name="draft" value="<?= $escaper->escapeHtmlAttr($subject['draft']) ?>">
+
+            <table class="data-grid zst-table zst-fields">
+                <thead>
+                <tr>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Change')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Field')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Now')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('From the campaign\'s start')) ?></th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($fields as $code => $field): ?>
+                    <?php $inputId = 'zst-value-' . $code; ?>
+                    <tr data-zst-field>
+                        <td><input type="checkbox" name="change[<?= $escaper->escapeHtmlAttr($code) ?>]" value="1" aria-label="<?= $escaper->escapeHtmlAttr(__('Change %1', $field['label'])) ?>"<?= $field['checked'] ? ' checked' : '' ?> data-zst-tick></td>
+                        <td class="zst-field-name">
+                            <label for="<?= $escaper->escapeHtmlAttr($inputId) ?>"><?= $escaper->escapeHtml($field['label']) ?></label>
+                            <?php if (!empty($field['hint'])): ?><small><?= $escaper->escapeHtml($field['hint']) ?></small><?php endif; ?>
+                        </td>
+                        <td class="zst-current">
+                            <?= $escaper->escapeHtml($field['current']) ?>
+                            <?php if ($field['inherited']): ?><small><?= $escaper->escapeHtml(__('(from All Store Views)')) ?></small><?php endif; ?>
+                        </td>
+                        <td>
+                            <?php switch ($field['type']):
+                                case 'textarea': ?>
+                                    <textarea id="<?= $escaper->escapeHtmlAttr($inputId) ?>" class="admin__control-textarea" name="value[<?= $escaper->escapeHtmlAttr($code) ?>]" rows="4"><?= $escaper->escapeHtml($field['value']) ?></textarea>
+                                    <?php break;
+                                case 'price': ?>
+                                    <input id="<?= $escaper->escapeHtmlAttr($inputId) ?>" class="admin__control-text zst-price" type="text" inputmode="decimal" name="value[<?= $escaper->escapeHtmlAttr($code) ?>]" value="<?= $escaper->escapeHtmlAttr($field['value'] !== '' ? number_format((float) $field['value'], 2, '.', '') : '') ?>">
+                                    <?php break;
+                                case 'boolean': ?>
+                                    <select id="<?= $escaper->escapeHtmlAttr($inputId) ?>" class="admin__control-select" name="value[<?= $escaper->escapeHtmlAttr($code) ?>]">
+                                        <option value="1"<?= (int) $field['value'] ? ' selected' : '' ?>><?= $escaper->escapeHtml(__('Yes')) ?></option>
+                                        <option value="0"<?= (int) $field['value'] ? '' : ' selected' ?>><?= $escaper->escapeHtml(__('No')) ?></option>
+                                    </select>
+                                    <?php break;
+                                case 'select': ?>
+                                    <select id="<?= $escaper->escapeHtmlAttr($inputId) ?>" class="admin__control-select" name="value[<?= $escaper->escapeHtmlAttr($code) ?>]">
+                                        <option value=""><?= $escaper->escapeHtml(__('(none)')) ?></option>
+                                        <?php foreach ((array) ($field['options'] ?? []) as $value => $label): ?>
+                                            <option value="<?= $escaper->escapeHtmlAttr((string) $value) ?>"<?= (string) $value === (string) $field['value'] ? ' selected' : '' ?>><?= $escaper->escapeHtml($label) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php break;
+                                case 'content': ?>
+                                    <p class="zst-content" id="<?= $escaper->escapeHtmlAttr($inputId) ?>">
+                                        <?php if ($staging->hasDraft()): ?>
+                                            <?= $escaper->escapeHtml(__('From the content editor: %1 components, ready to schedule.', count((array) ($field['value']['components'] ?? [])))) ?>
+                                        <?php elseif ($field['checked']): ?>
+                                            <?= $escaper->escapeHtml(__('%1 components.', count((array) ($field['value']['components'] ?? [])))) ?>
+                                            <?php if ($staging->change()): ?>
+                                                <a href="<?= $escaper->escapeUrl($staging->editorUrl()) ?>"><?= $escaper->escapeHtml(__('Edit content')) ?></a>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <a href="<?= $escaper->escapeUrl($staging->editorUrl()) ?>"><?= $escaper->escapeHtml(__('Edit content')) ?></a>
+                                            <small><?= $escaper->escapeHtml(__('In the editor, make the changes, then "Schedule…" (instead of Save).')) ?></small>
+                                        <?php endif; ?>
+                                    </p>
+                                    <?php break;
+                                default: ?>
+                                    <input id="<?= $escaper->escapeHtmlAttr($inputId) ?>" class="admin__control-text" type="text" name="value[<?= $escaper->escapeHtmlAttr($code) ?>]" value="<?= $escaper->escapeHtmlAttr($field['value']) ?>">
+                            <?php endswitch; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <fieldset class="zst-form zst-campaign-choice">
+                <legend class="zst-title"><?= $escaper->escapeHtml(__('Campaign')) ?></legend>
+                <label for="zst-campaign"><?= $escaper->escapeHtml(__('Goes live with')) ?></label>
+                <select id="zst-campaign" class="admin__control-select" name="campaign" data-zst-campaign<?= $staging->change() ? ' disabled' : '' ?>>
+                    <?php foreach ($campaigns as $id => $label): ?>
+                        <option value="<?= (int) $id ?>"<?= $id === $subject['campaign'] ? ' selected' : '' ?>><?= $escaper->escapeHtml($label) ?></option>
+                    <?php endforeach; ?>
+                    <option value="0"<?= !$campaigns ? ' selected' : '' ?>><?= $escaper->escapeHtml(__('A new campaign…')) ?></option>
+                </select>
+                <?php if ($staging->change()): ?>
+                    <input type="hidden" name="campaign" value="<?= (int) $subject['campaign'] ?>">
+                <?php endif; ?>
+                <div class="zst-new-campaign" data-zst-new>
+                    <label for="zst-new-name"><?= $escaper->escapeHtml(__('Name')) ?></label>
+                    <input id="zst-new-name" class="admin__control-text" type="text" name="new[name]" maxlength="255" placeholder="<?= $escaper->escapeHtmlAttr(__('Black Friday')) ?>">
+                    <label for="zst-new-start"><?= $escaper->escapeHtml(__('Starts')) ?></label>
+                    <input id="zst-new-start" class="admin__control-text" type="datetime-local" name="new[start]">
+                    <label for="zst-new-end"><?= $escaper->escapeHtml(__('Ends')) ?></label>
+                    <input id="zst-new-end" class="admin__control-text" type="datetime-local" name="new[end]">
+                    <small><?= $escaper->escapeHtml(__('Store time (%1). No end: the changes stay.', $staging->zone())) ?></small>
+                </div>
+            </fieldset>
+
+            <div class="zst-bar">
+                <button type="submit" class="action-primary"><?= $escaper->escapeHtml(__('Schedule the Change')) ?></button>
+                <a class="action-tertiary" href="<?= $escaper->escapeUrl($back) ?>"><?= $escaper->escapeHtml(__('Cancel')) ?></a>
+            </div>
+        </form>
+    <?php endif; ?>
+</div>

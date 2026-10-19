@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    Every minute: campaigns whose end has come are undone, then those whose
+    start has come go live. Nothing to do costs one indexed query.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <job name="zero_staging_run" instance="Zero\Staging\Cron\Run" method="execute">
+            <schedule>* * * * *</schedule>
+        </job>
+    </group>
+</config>

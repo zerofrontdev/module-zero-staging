@@ -1,0 +1,46 @@
+{
+    "zero_staging_campaign": {
+        "column": {
+            "campaign_id": true,
+            "name": true,
+            "description": true,
+            "start_at": true,
+            "end_at": true,
+            "status": true,
+            "started_at": true,
+            "ended_at": true,
+            "created_by": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "ZERO_STAGING_CAMPAIGN_STATUS_START_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    },
+    "zero_staging_change": {
+        "column": {
+            "change_id": true,
+            "campaign_id": true,
+            "target": true,
+            "entity_id": true,
+            "store_id": true,
+            "label": true,
+            "data": true,
+            "original": true,
+            "status": true,
+            "message": true,
+            "updated_at": true
+        },
+        "index": {
+            "ZERO_STAGING_CHANGE_TARGET_ENTITY_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FK_95EB8CD09CD6243B5E98EB2ECBB845AD": true,
+            "ZERO_STAGING_CHANGE_CAMPAIGN_ID_TARGET_ENTITY_ID_STORE_ID": true
+        }
+    }
+}

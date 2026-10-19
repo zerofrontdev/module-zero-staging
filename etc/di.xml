@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    What a campaign can change (a module adds its own entities to the pool
+    the same way), and the CLI.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Zero\Staging\Model\Target\Pool">
+        <arguments>
+            <argument name="targets" xsi:type="array">
+                <item name="product" xsi:type="object">Zero\Staging\Model\Target\Product\Proxy</item>
+                <item name="category" xsi:type="object">Zero\Staging\Model\Target\Category\Proxy</item>
+                <item name="cms_page" xsi:type="object">Zero\Staging\Model\Target\CmsPage\Proxy</item>
+                <item name="cms_block" xsi:type="object">Zero\Staging\Model\Target\CmsBlock\Proxy</item>
+                <item name="banner_slide" xsi:type="object">Zero\Staging\Model\Target\BannerSlide\Proxy</item>
+                <item name="catalog_rule" xsi:type="object">Zero\Staging\Model\Target\CatalogRule\Proxy</item>
+                <item name="cart_rule" xsi:type="object">Zero\Staging\Model\Target\CartRule\Proxy</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Zero\Staging\Model\Preview\Link">
+        <arguments>
+            <argument name="frontendUrl" xsi:type="object">Magento\Framework\Url</argument>
+        </arguments>
+    </type>
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="zero_staging_run" xsi:type="object">Zero\Staging\Console\Command\Run</item>
+                <item name="zero_staging_list" xsi:type="object">Zero\Staging\Console\Command\ListCampaigns</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

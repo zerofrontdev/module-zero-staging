@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    The preview bar: renders nothing outside a preview (and preview pages
+    aren't cached, so it never ends up in the store's own pages).
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="before.body.end">
+            <block name="zero.staging.preview.bar" template="Zero_Staging::preview-bar.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Zero\Staging\ViewModel\PreviewBar</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

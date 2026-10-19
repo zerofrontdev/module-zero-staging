@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    The storefront preview of a moment (Model\Preview). Outside a preview
+    each of these returns at its first line.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Framework\App\ActionInterface">
+        <plugin name="zero_staging_preview_context" type="Zero\Staging\Plugin\Preview\HttpContext"/>
+    </type>
+    <type name="Magento\Framework\View\Layout">
+        <plugin name="zero_staging_preview_uncacheable" type="Zero\Staging\Plugin\Preview\LayoutCacheable"/>
+    </type>
+    <type name="Zero\Cms\Model\Content\Repository">
+        <plugin name="zero_staging_preview_content" type="Zero\Staging\Plugin\Preview\CmsContent"/>
+    </type>
+    <type name="Zero\Banner\Model\ResourceModel\Slide\Collection">
+        <plugin name="zero_staging_preview_slides" type="Zero\Staging\Plugin\Preview\SlideVisibility"/>
+    </type>
+    <type name="Zero\Banner\Block\Widget\Banner">
+        <plugin name="zero_staging_preview_slide_content" type="Zero\Staging\Plugin\Preview\SlideContent"/>
+    </type>
+    <virtualType name="Zero\Staging\Observer\Preview\ProductOverlay" type="Zero\Staging\Observer\Preview\EntityOverlay">
+        <arguments>
+            <argument name="target" xsi:type="string">product</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Observer\Preview\CategoryOverlay" type="Zero\Staging\Observer\Preview\EntityOverlay">
+        <arguments>
+            <argument name="target" xsi:type="string">category</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Observer\Preview\CmsPageOverlay" type="Zero\Staging\Observer\Preview\EntityOverlay">
+        <arguments>
+            <argument name="target" xsi:type="string">cms_page</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Zero\Staging\Observer\Preview\CmsBlockOverlay" type="Zero\Staging\Observer\Preview\EntityOverlay">
+        <arguments>
+            <argument name="target" xsi:type="string">cms_block</argument>
+        </arguments>
+    </virtualType>
+</config>

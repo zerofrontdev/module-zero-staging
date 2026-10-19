@@ -1,0 +1,23 @@
+<?php
+/**
+ * Copyright © 2026 Roman Pasichnyk
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+/** @var \Zero\Staging\ViewModel\PreviewBar $bar */
+$bar = $block->getData('view_model');
+if (!$bar->isActive()) {
+    return;
+}
+$campaign = $bar->campaign();
+?>
+<aside class="zero-staging-bar" role="status" aria-label="<?= $escaper->escapeHtmlAttr(__('Preview')) ?>">
+    <p>
+        <strong><?= $escaper->escapeHtml(__('Preview')) ?></strong>
+        <?= $escaper->escapeHtml(__('The store as of %1', $bar->moment())) ?><?php if ($campaign !== ''): ?>
+        · <?= $escaper->escapeHtml($campaign) ?><?php endif; ?>
+    </p>
+    <a href="<?= $escaper->escapeUrl($bar->stopUrl()) ?>"><?= $escaper->escapeHtml(__('Exit preview')) ?></a>
+</aside>

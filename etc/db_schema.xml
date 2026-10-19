@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    A campaign: changes that go live together at its start and, when it has
+    an end, are undone together then. A change: one entity in one store view,
+    the values it sets, and what they replaced (kept when it starts, for the
+    end and for the record).
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="zero_staging_campaign" resource="default" engine="innodb" comment="Zero Staging Campaigns">
+        <column xsi:type="int" name="campaign_id" unsigned="true" nullable="false" identity="true" comment="Campaign ID"/>
+        <column xsi:type="varchar" name="name" length="255" nullable="false" comment="Name"/>
+        <column xsi:type="text" name="description" nullable="true" comment="Description"/>
+        <column xsi:type="datetime" name="start_at" nullable="false" comment="Starts (UTC)"/>
+        <column xsi:type="datetime" name="end_at" nullable="true" comment="Ends (UTC); none: the changes stay"/>
+        <column xsi:type="varchar" name="status" length="20" nullable="false" default="scheduled"
+                comment="scheduled, active, completed"/>
+        <column xsi:type="datetime" name="started_at" nullable="true" comment="Went live (UTC)"/>
+        <column xsi:type="datetime" name="ended_at" nullable="true" comment="Undone (UTC)"/>
+        <column xsi:type="varchar" name="created_by" length="255" nullable="true" comment="Admin User"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="campaign_id"/>
+        </constraint>
+        <index referenceId="ZERO_STAGING_CAMPAIGN_STATUS_START_AT" indexType="btree">
+            <column name="status"/>
+            <column name="start_at"/>
+        </index>
+    </table>
+    <table name="zero_staging_change" resource="default" engine="innodb" comment="Zero Staging Changes">
+        <column xsi:type="int" name="change_id" unsigned="true" nullable="false" identity="true" comment="Change ID"/>
+        <column xsi:type="int" name="campaign_id" unsigned="true" nullable="false" comment="Campaign ID"/>
+        <column xsi:type="varchar" name="target" length="40" nullable="false" comment="What kind of entity (product, cms_page, ...)"/>
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" comment="Entity ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0" comment="Store View (0: all)"/>
+        <column xsi:type="varchar" name="label" length="255" nullable="true" comment="The entity, as the admin lists it"/>
+        <column xsi:type="mediumtext" name="data" nullable="false" comment="Values it sets (JSON)"/>
+        <column xsi:type="mediumtext" name="original" nullable="true" comment="Values they replaced (JSON)"/>
+        <column xsi:type="varchar" name="status" length="20" nullable="false" default="pending"
+                comment="pending, applied, reverted, failed"/>
+        <column xsi:type="text" name="message" nullable="true" comment="What happened (errors, values kept)"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="change_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="ZERO_STAGING_CHANGE_CAMPAIGN_ID_ZERO_STAGING_CAMPAIGN_CAMPAIGN_ID"
+                    table="zero_staging_change" column="campaign_id"
+                    referenceTable="zero_staging_campaign" referenceColumn="campaign_id" onDelete="CASCADE"/>
+        <constraint xsi:type="unique" referenceId="ZERO_STAGING_CHANGE_CAMPAIGN_TARGET_ENTITY_STORE">
+            <column name="campaign_id"/>
+            <column name="target"/>
+            <column name="entity_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <index referenceId="ZERO_STAGING_CHANGE_TARGET_ENTITY_ID" indexType="btree">
+            <column name="target"/>
+            <column name="entity_id"/>
+        </index>
+    </table>
+</schema>

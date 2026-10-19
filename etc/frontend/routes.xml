@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    /zero_staging/preview/start (a signed link from the admin) and /exit.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="zero_staging" frontName="zero_staging">
+            <module name="Zero_Staging"/>
+        </route>
+    </router>
+</config>

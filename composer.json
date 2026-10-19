@@ -1,0 +1,48 @@
+{
+    "name": "fixstacks/module-zero-staging",
+    "description": "Zero for Magento Open Source: content staging and scheduling: campaigns of changes (prices, texts, pages, banners, price rules) that go live and end at a set minute, with a preview of the store as of any moment.",
+    "type": "magento2-module",
+    "version": "1.0.0",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Roman Pasichnyk"
+        }
+    ],
+    "homepage": "https://marketplace.fixstacks.com/",
+    "keywords": [
+        "magento",
+        "magento2",
+        "magento-open-source",
+        "zero",
+        "staging",
+        "scheduling",
+        "campaigns",
+        "preview"
+    ],
+    "require": {
+        "php": "~8.2.0||~8.3.0||~8.4.0",
+        "magento/framework": "103.0.*",
+        "magento/module-backend": "*",
+        "magento/module-catalog": "*",
+        "magento/module-catalog-rule": "*",
+        "magento/module-cms": "*",
+        "magento/module-cron": "*",
+        "magento/module-customer": "*",
+        "magento/module-eav": "*",
+        "magento/module-sales-rule": "*",
+        "magento/module-store": "*",
+        "magento/module-ui": "*",
+        "fixstacks/module-zero-core": "^1.2",
+        "fixstacks/module-zero-cms": "^1.2",
+        "fixstacks/module-zero-banner": "^1.2"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Zero\\Staging\\": ""
+        }
+    }
+}

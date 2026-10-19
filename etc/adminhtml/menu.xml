@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    Content > Staging > Campaigns.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Zero_Staging::staging" title="Staging" translate="title" module="Zero_Staging" sortOrder="15"
+             parent="Magento_Backend::content" resource="Zero_Staging::staging"/>
+        <add id="Zero_Staging::campaigns" title="Campaigns" translate="title" module="Zero_Staging" sortOrder="10"
+             parent="Zero_Staging::staging" action="zero_staging/campaign/index" resource="Zero_Staging::staging"/>
+    </menu>
+</config>

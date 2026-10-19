@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="Zero_Staging::css/staging.css"/>
+        <script src="Zero_Staging::js/staging.js" defer="defer"/>
+    </head>
+    <body>
+        <referenceContainer name="content">
+            <block class="Magento\Backend\Block\Template" name="zero.staging.change" template="Zero_Staging::change.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Zero\Staging\ViewModel\Adminhtml\Staging</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

@@ -1,0 +1,116 @@
+<?php
+/**
+ * Copyright © 2026 Roman Pasichnyk
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ *
+ * Content > Staging > Campaigns: the next four weeks, then the campaigns
+ * coming up and live, then the ones done.
+ *
+ * @var \Magento\Backend\Block\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+/** @var \Zero\Staging\ViewModel\Adminhtml\Staging $staging */
+$staging = $block->getData('view_model');
+$timeline = $staging->timeline();
+$upcoming = $staging->upcoming();
+$completed = $staging->completed();
+$stores = $staging->stores();
+unset($stores[0]);
+$table = function (array $campaigns, bool $done) use ($staging, $escaper): void { ?>
+    <table class="data-grid zst-table">
+        <thead>
+        <tr>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Campaign')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Starts')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Ends')) ?></th>
+            <th class="data-grid-th zst-num"><?= $escaper->escapeHtml(__('Changes')) ?></th>
+            <th class="data-grid-th"><span class="admin__visually-hidden"><?= $escaper->escapeHtml(__('Actions')) ?></span></th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($campaigns as $campaign): ?>
+            <tr>
+                <td><span class="zst-pill is-<?= $escaper->escapeHtmlAttr($campaign['status']) ?>"><?= $escaper->escapeHtml($staging->statusLabel($campaign['status'])) ?></span></td>
+                <td>
+                    <a href="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/edit', ['id' => $campaign['campaign_id']])) ?>"><?= $escaper->escapeHtml($campaign['name']) ?></a>
+                    <?php if ((int) $campaign['failed']): ?>
+                        <span class="zst-pill is-failed"><?= $escaper->escapeHtml(__('%1 failed', (int) $campaign['failed'])) ?></span>
+                    <?php endif; ?>
+                </td>
+                <td><?= $escaper->escapeHtml($staging->format($campaign['start_at'])) ?></td>
+                <td><?= $escaper->escapeHtml($campaign['end_at'] ? $staging->format($campaign['end_at']) : __('Stays')) ?></td>
+                <td class="zst-num"><?= (int) $campaign['changes'] ?></td>
+                <td class="zst-row-actions">
+                    <?php if (!$done): ?>
+                        <a href="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/preview', ['id' => $campaign['campaign_id']])) ?>" target="_blank" rel="noopener"><?= $escaper->escapeHtml(__('Preview')) ?></a>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php };
+?>
+<div class="zst">
+    <div class="zst-bar">
+        <a class="action-primary" href="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/edit')) ?>"><?= $escaper->escapeHtml(__('New Campaign')) ?></a>
+        <form class="zst-preview-at" method="get" action="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/preview')) ?>" target="_blank">
+            <label for="zst-at"><?= $escaper->escapeHtml(__('See the store as of')) ?></label>
+            <input id="zst-at" class="admin__control-text" type="datetime-local" name="at" value="<?= $escaper->escapeHtmlAttr($staging->nowInput()) ?>" required>
+            <?php if (count($stores) > 1): ?>
+                <label class="admin__visually-hidden" for="zst-at-store"><?= $escaper->escapeHtml(__('Store View')) ?></label>
+                <select id="zst-at-store" class="admin__control-select" name="store">
+                    <?php foreach ($stores as $id => $label): ?>
+                        <option value="<?= (int) $id ?>"><?= $escaper->escapeHtml($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
+            <button type="submit" class="action-secondary"><?= $escaper->escapeHtml(__('Preview')) ?></button>
+        </form>
+    </div>
+
+    <section class="zst-timeline" aria-labelledby="zst-timeline-title">
+        <h2 id="zst-timeline-title" class="zst-title"><?= $escaper->escapeHtml(__('Next four weeks')) ?> <small><?= $escaper->escapeHtml($staging->zone()) ?></small></h2>
+        <div class="zst-days" style="--zst-days: <?= count($timeline['days']) ?>" aria-hidden="true">
+            <?php foreach ($timeline['days'] as $day): ?>
+                <span class="<?= $day['weekend'] ? 'is-weekend' : '' ?><?= $day['today'] ? ' is-today' : '' ?>"><b><?= $escaper->escapeHtml($day['month']) ?></b><?= $escaper->escapeHtml($day['label']) ?></span>
+            <?php endforeach; ?>
+        </div>
+        <?php if ($timeline['bars']): ?>
+            <ol class="zst-lanes">
+                <?php foreach ($timeline['bars'] as $bar): ?>
+                    <li class="zst-lane">
+                        <a class="zst-span is-<?= $escaper->escapeHtmlAttr($bar['status']) ?><?= $bar['open'] ? ' is-open' : '' ?><?= $bar['before'] ? ' is-before' : '' ?>"
+                           style="left: <?= (float) $bar['left'] ?>%; width: <?= (float) $bar['width'] ?>%"
+                           href="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/edit', ['id' => $bar['campaign_id']])) ?>"
+                           title="<?= $escaper->escapeHtmlAttr($bar['name'] . ': ' . $staging->format($bar['start_at']) . ' – ' . ($bar['end_at'] ? $staging->format($bar['end_at']) : __('stays'))) ?>">
+                            <?= $escaper->escapeHtml($bar['name']) ?>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        <?php else: ?>
+            <p class="zst-empty"><?= $escaper->escapeHtml(__('Nothing scheduled in the next four weeks.')) ?></p>
+        <?php endif; ?>
+    </section>
+
+    <section aria-labelledby="zst-upcoming-title">
+        <h2 id="zst-upcoming-title" class="zst-title"><?= $escaper->escapeHtml(__('Coming up and live')) ?></h2>
+        <?php if ($upcoming): ?>
+            <?php $table($upcoming, false); ?>
+        <?php else: ?>
+            <div class="zst-intro">
+                <p><?= $escaper->escapeHtml(__('A campaign is a set of changes that go live together at a set minute — new prices, a different home page, another banner — and, if it has an end, are undone together then. Preview the store as of any moment before it happens.')) ?></p>
+                <p><?= $escaper->escapeHtml(__('Start with New Campaign, or with "Schedule a Change" on a product, category, CMS page, block or banner.')) ?></p>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <?php if ($completed): ?>
+        <section aria-labelledby="zst-done-title">
+            <h2 id="zst-done-title" class="zst-title"><?= $escaper->escapeHtml(__('Done')) ?></h2>
+            <?php $table($completed, true); ?>
+        </section>
+    <?php endif; ?>
+</div>

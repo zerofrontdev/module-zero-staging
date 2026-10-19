@@ -1,0 +1,147 @@
+<?php
+/**
+ * Copyright © 2026 Roman Pasichnyk
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ *
+ * A campaign: its name and times, its buttons (Preview, Start now, End now,
+ * Delete), then its changes.
+ *
+ * @var \Magento\Backend\Block\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+/** @var \Zero\Staging\ViewModel\Adminhtml\Staging $staging */
+$staging = $block->getData('view_model');
+$campaign = $staging->campaign();
+$form = $staging->campaignForm();
+$id = $campaign ? (int) $campaign['campaign_id'] : 0;
+$status = $campaign['status'] ?? 'scheduled';
+$scheduled = $status === 'scheduled';
+$changes = $staging->changes();
+$post = function (string $route, string $label, string $class, string $confirm = '') use ($staging, $escaper, $id): void { ?>
+    <form method="post" action="<?= $escaper->escapeUrl($staging->url($route, ['id' => $id])) ?>"<?php if ($confirm !== ''): ?> data-zst-confirm="<?= $escaper->escapeHtmlAttr($confirm) ?>"<?php endif; ?>>
+        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($staging->formKey()) ?>">
+        <button type="submit" class="<?= $escaper->escapeHtmlAttr($class) ?>"><?= $escaper->escapeHtml($label) ?></button>
+    </form>
+<?php };
+?>
+<div class="zst">
+    <div class="zst-bar">
+        <a class="action-tertiary" href="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/index')) ?>">← <?= $escaper->escapeHtml(__('Campaigns')) ?></a>
+        <?php if ($campaign): ?>
+            <span class="zst-pill is-<?= $escaper->escapeHtmlAttr($status) ?>"><?= $escaper->escapeHtml($staging->statusLabel($status)) ?></span>
+            <span class="zst-spacer"></span>
+            <?php if ($status !== 'completed'): ?>
+                <a class="action-secondary" target="_blank" rel="noopener" href="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/preview', ['id' => $id])) ?>"><?= $escaper->escapeHtml(__('Preview')) ?></a>
+            <?php endif; ?>
+            <?php if ($scheduled && $changes): ?>
+                <?php $post('zero_staging/campaign/start', (string) __('Start now'), 'action-secondary', (string) __('Make these changes in the store now?')); ?>
+            <?php endif; ?>
+            <?php if ($status === 'active'): ?>
+                <?php $post('zero_staging/campaign/end', (string) __('End now'), 'action-secondary', (string) __('Undo these changes in the store now?')); ?>
+            <?php endif; ?>
+            <?php if ($status !== 'active'): ?>
+                <?php $post('zero_staging/campaign/delete', (string) __('Delete'), 'action-tertiary', (string) __('Delete this campaign? The store keeps whatever it holds now.')); ?>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
+    <form class="zst-form" method="post" action="<?= $escaper->escapeUrl($staging->url('zero_staging/campaign/save', $id ? ['id' => $id] : [])) ?>">
+        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($staging->formKey()) ?>">
+        <label for="zst-name"><?= $escaper->escapeHtml(__('Name')) ?></label>
+        <input id="zst-name" class="admin__control-text" type="text" name="name" maxlength="255" required value="<?= $escaper->escapeHtmlAttr($form['name']) ?>" placeholder="<?= $escaper->escapeHtmlAttr(__('Black Friday')) ?>">
+
+        <label for="zst-start"><?= $escaper->escapeHtml(__('Starts')) ?></label>
+        <div>
+            <input id="zst-start" class="admin__control-text" type="datetime-local" name="start" required value="<?= $escaper->escapeHtmlAttr($form['start']) ?>"<?= $scheduled ? '' : ' disabled' ?>>
+            <?php if (!$scheduled && $campaign): ?>
+                <input type="hidden" name="start" value="<?= $escaper->escapeHtmlAttr($form['start']) ?>">
+                <small><?= $escaper->escapeHtml(__('Went live %1.', $staging->format($campaign['started_at'] ?? $campaign['start_at']))) ?></small>
+            <?php else: ?>
+                <small><?= $escaper->escapeHtml(__('Store time (%1). The changes are made within a minute of it.', $staging->zone())) ?></small>
+            <?php endif; ?>
+        </div>
+
+        <label for="zst-end"><?= $escaper->escapeHtml(__('Ends')) ?></label>
+        <div>
+            <input id="zst-end" class="admin__control-text" type="datetime-local" name="end" value="<?= $escaper->escapeHtmlAttr($form['end']) ?>"<?= $status === 'completed' ? ' disabled' : '' ?>>
+            <?php if ($status === 'completed' && $campaign): ?>
+                <input type="hidden" name="end" value="<?= $escaper->escapeHtmlAttr($form['end']) ?>">
+                <small><?= $escaper->escapeHtml($campaign['ended_at'] ? __('Undone %1.', $staging->format($campaign['ended_at'])) : __('No end: the changes stayed.')) ?></small>
+            <?php else: ?>
+                <small><?= $escaper->escapeHtml(__('Optional. At the end every change is undone, except fields someone changed by hand meanwhile. Empty: the changes stay.')) ?></small>
+            <?php endif; ?>
+        </div>
+
+        <label for="zst-description"><?= $escaper->escapeHtml(__('Notes')) ?></label>
+        <textarea id="zst-description" class="admin__control-textarea" name="description" rows="2"><?= $escaper->escapeHtml($form['description']) ?></textarea>
+
+        <span></span>
+        <div><button type="submit" class="action-primary"><?= $escaper->escapeHtml($id ? __('Save') : __('Create Campaign')) ?></button></div>
+    </form>
+
+    <?php if ($campaign): ?>
+        <section aria-labelledby="zst-changes-title">
+            <div class="zst-bar">
+                <h2 id="zst-changes-title" class="zst-title"><?= $escaper->escapeHtml(__('Changes')) ?></h2>
+                <span class="zst-spacer"></span>
+                <?php if ($scheduled): ?>
+                    <a class="action-secondary" href="<?= $escaper->escapeUrl($staging->url('zero_staging/change/edit', ['campaign' => $id])) ?>"><?= $escaper->escapeHtml(__('Add a Change')) ?></a>
+                <?php endif; ?>
+            </div>
+            <?php if ($changes): ?>
+                <table class="data-grid zst-table">
+                    <thead>
+                    <tr>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('What')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Changes')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+                        <th class="data-grid-th"><span class="admin__visually-hidden"><?= $escaper->escapeHtml(__('Actions')) ?></span></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($changes as $change): ?>
+                        <tr id="change-<?= (int) $change['change_id'] ?>">
+                            <td>
+                                <small class="zst-kind"><?= $escaper->escapeHtml($change['kind']) ?></small>
+                                <?php if ($change['entity_url'] !== ''): ?>
+                                    <a href="<?= $escaper->escapeUrl($change['entity_url']) ?>"><?= $escaper->escapeHtml($change['label']) ?></a>
+                                <?php else: ?>
+                                    <?= $escaper->escapeHtml($change['label']) ?>
+                                <?php endif; ?>
+                                <?php if ($change['store'] !== ''): ?>
+                                    <small class="zst-store"><?= $escaper->escapeHtml($change['store']) ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <dl class="zst-lines">
+                                    <?php foreach ($change['lines'] as $line): ?>
+                                        <dt><?= $escaper->escapeHtml($line['label']) ?></dt>
+                                        <dd><span class="zst-from"><?= $escaper->escapeHtml($line['from']) ?></span> → <span class="zst-to"><?= $escaper->escapeHtml($line['to']) ?></span></dd>
+                                    <?php endforeach; ?>
+                                </dl>
+                            </td>
+                            <td>
+                                <span class="zst-pill is-<?= $escaper->escapeHtmlAttr($change['status']) ?>"><?= $escaper->escapeHtml($staging->statusLabel($change['status'])) ?></span>
+                                <?php if ($change['message']): ?>
+                                    <small class="zst-message"><?= $escaper->escapeHtml($change['message']) ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td class="zst-row-actions">
+                                <?php if ($scheduled): ?>
+                                    <a href="<?= $escaper->escapeUrl($change['edit_url']) ?>"><?= $escaper->escapeHtml(__('Edit')) ?></a>
+                                    <form method="post" action="<?= $escaper->escapeUrl($staging->url('zero_staging/change/delete', ['id' => $change['change_id'], 'campaign' => $id])) ?>" data-zst-confirm="<?= $escaper->escapeHtmlAttr(__('Remove this change from the campaign?')) ?>">
+                                        <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($staging->formKey()) ?>">
+                                        <button type="submit" class="action-tertiary"><?= $escaper->escapeHtml(__('Remove')) ?></button>
+                                    </form>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p class="zst-empty"><?= $escaper->escapeHtml(__('No changes yet. Add one here, or use "Schedule a Change" on a product, category, CMS page, block or banner.')) ?></p>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
+</div>

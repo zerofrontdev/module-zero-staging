@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+    Copyright © 2026 Roman Pasichnyk
+    SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+    In a preview: loaded entities get the values they will have.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="catalog_product_load_after">
+        <observer name="zero_staging_preview" instance="Zero\Staging\Observer\Preview\ProductOverlay"/>
+    </event>
+    <event name="catalog_product_collection_load_after">
+        <observer name="zero_staging_preview" instance="Zero\Staging\Observer\Preview\ProductOverlay"/>
+    </event>
+    <event name="catalog_category_load_after">
+        <observer name="zero_staging_preview" instance="Zero\Staging\Observer\Preview\CategoryOverlay"/>
+    </event>
+    <event name="catalog_category_collection_load_after">
+        <observer name="zero_staging_preview" instance="Zero\Staging\Observer\Preview\CategoryOverlay"/>
+    </event>
+    <event name="cms_page_load_after">
+        <observer name="zero_staging_preview" instance="Zero\Staging\Observer\Preview\CmsPageOverlay"/>
+    </event>
+    <event name="cms_block_load_after">
+        <observer name="zero_staging_preview" instance="Zero\Staging\Observer\Preview\CmsBlockOverlay"/>
+    </event>
+    <event name="view_block_abstract_to_html_before">
+        <observer name="zero_staging_preview_cache_key" instance="Zero\Staging\Observer\Preview\BlockCacheKey"/>
+    </event>
+</config>
