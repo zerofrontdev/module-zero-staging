@@ -80,7 +80,7 @@ effect when the campaign starts.
 
 ## Install
 
-Licensed: `composer require fixstacks/module-zero-staging` with the key from
+Licensed: `composer require zerofront/module-zero-staging` with the key from
 My Account > Licenses, then `bin/magento setup:upgrade`. Needs Zero_Core,
 Zero_Cms and Zero_Banner (Packagist) and the Magento cron.
 
