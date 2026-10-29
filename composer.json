@@ -2,7 +2,7 @@
     "name": "zerofront/module-zero-staging",
     "description": "Zero for Magento Open Source: content staging and scheduling: campaigns of changes (prices, texts, pages, banners, price rules) that go live and end at a set minute, with a preview of the store as of any moment.",
     "type": "magento2-module",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "license": "proprietary",
     "authors": [
         {
