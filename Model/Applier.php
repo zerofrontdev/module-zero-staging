@@ -9,12 +9,13 @@ namespace Zero\Staging\Model;
 
 use Psr\Log\LoggerInterface;
 use Zero\Staging\Model\Target\Pool;
+use Zero\Staging\Model\Target\TargetInterface;
 
 /**
  * Puts a campaign live and undoes it.
  *
- * Going live, each change first keeps the values it replaces, then writes
- * its own. Undoing writes the kept values back, but only into fields that
+ * Going live, each change first stores the values it replaces, then writes
+ * its own (a failed change keeps them, for an undo by hand). Undoing writes the kept values back, but only into fields that
  * still hold the campaign's value: a price someone changed by hand during
  * the campaign stays as they set it (the change says so). One change that
  * fails (its entity deleted, say) doesn't stop the others.
@@ -47,7 +48,7 @@ class Applier
             }
             try {
                 $target = $this->targets->get($change['target']);
-                $original = $target->read($change['entity_id'], $change['store_id'], array_keys($change['data']));
+                $original = $this->keepOriginal($target, $change);
                 $target->write(
                     $change['entity_id'],
                     $change['store_id'],
@@ -142,6 +143,29 @@ class Applier
             }
         }
         return ['restore' => $restore, 'kept' => $kept];
+    }
+
+    /**
+     * The values the change replaces, stored on the change before it writes
+     * anything: a write that stops halfway (or a process that dies) still
+     * knows them. Fields already stored (an earlier attempt) aren't read
+     * again, so a restart never takes the campaign's own value for one.
+     *
+     * @return array<string, array{value: mixed, inherited: bool}>
+     */
+    private function keepOriginal(TargetInterface $target, array $change): array
+    {
+        $original = is_array($change['original'] ?? null) ? $change['original'] : [];
+        $missing = array_values(array_diff(array_keys($change['data']), array_keys($original)));
+        if (!$missing) {
+            return $original;
+        }
+        $read = $target->read($change['entity_id'], $change['store_id'], $missing);
+        if ($read) {
+            $original += $read;
+            $this->campaigns->updateChange($change['change_id'], ['original' => $original]);
+        }
+        return $original;
     }
 
     private function fail(array $campaign, array $change, \Throwable $e): void

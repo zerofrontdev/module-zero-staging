@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace Zero\Staging\Model;
 
 use Magento\Framework\App\ResourceConnection;
+use Zero\Staging\Model\Target\Pool;
+use Zero\Staging\Model\Target\TargetInterface;
 
 /**
  * Campaigns and their changes, as rows. Times are UTC ("Y-m-d H:i:s");
@@ -32,8 +34,10 @@ class Campaigns
     private const CAMPAIGN = 'zero_staging_campaign';
     private const CHANGE = 'zero_staging_change';
 
-    public function __construct(private readonly ResourceConnection $resource)
-    {
+    public function __construct(
+        private readonly ResourceConnection $resource,
+        private readonly Pool $targets
+    ) {
     }
 
     public function get(int $id): ?array
@@ -211,7 +215,10 @@ class Campaigns
 
     /**
      * Other scheduled or live campaigns that change one of these fields of
-     * this entity in this store view while this campaign runs.
+     * this entity, in the store views its value lands in, while this
+     * campaign runs. Where a value lands is the target's write rule
+     * (TargetInterface::stores()): a global field from any two store views
+     * clashes, a website-scope one from store views of one website.
      *
      * @param string[] $fields
      * @return string[] Their names
@@ -228,24 +235,42 @@ class Campaigns
         $connection = $this->resource->getConnection();
         $select = $connection->select()
             ->from(['c' => $this->table(self::CAMPAIGN)], ['name'])
-            ->join(['ch' => $this->table(self::CHANGE)], 'ch.campaign_id = c.campaign_id', ['data'])
+            ->join(['ch' => $this->table(self::CHANGE)], 'ch.campaign_id = c.campaign_id', ['data', 'store_id'])
             ->where('c.campaign_id != ?', $campaignId)
             ->where('c.status IN (?)', [self::SCHEDULED, self::ACTIVE])
             ->where('ch.target = ?', $target)
             ->where('ch.entity_id = ?', $entityId)
-            ->where('ch.store_id = ?', $storeId)
             ->where('c.end_at IS NULL OR c.end_at > ?', $start);
         if ($end !== null) {
             $select->where('c.start_at < ?', $end);
         }
+        $handler = $this->targets->has($target) ? $this->targets->get($target) : null;
         $names = [];
         foreach ($connection->fetchAll($select) as $row) {
             $theirs = array_keys((array) json_decode((string) $row['data'], true));
-            if (array_intersect($theirs, $fields)) {
-                $names[] = (string) $row['name'];
+            foreach (array_intersect($fields, $theirs) as $field) {
+                if ($this->sameStores($handler, (string) $field, $storeId, (int) $row['store_id'])) {
+                    $names[] = (string) $row['name'];
+                    break;
+                }
             }
         }
         return array_values(array_unique($names));
+    }
+
+    /**
+     * Whether a value of $field set for store view $mine and one set for
+     * $theirs land in a common store view.
+     */
+    private function sameStores(?TargetInterface $handler, string $field, int $mine, int $theirs): bool
+    {
+        if ($mine === $theirs) {
+            return true;
+        }
+        if ($handler === null) {
+            return false;
+        }
+        return (bool) array_intersect($handler->stores($field, $mine), $handler->stores($field, $theirs));
     }
 
     /**

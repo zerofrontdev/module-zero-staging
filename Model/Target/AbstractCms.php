@@ -59,6 +59,12 @@ abstract class AbstractCms implements TargetInterface
         ];
     }
 
+    /** The content is per store view; the entity's own fields are one for all of them. */
+    public function stores(string $field, int $storeId): array
+    {
+        return $field === self::CONTENT ? [$storeId] : [0];
+    }
+
     public function read(int $id, int $storeId, array $fields): array
     {
         $entity = $this->load($id);

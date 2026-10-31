@@ -17,7 +17,7 @@ use Magento\Framework\Lock\LockManagerInterface;
  */
 class Runner
 {
-    private const LOCK = 'zero_staging_run';
+    public const LOCK = 'zero_staging_run';
 
     public function __construct(
         private readonly Campaigns $campaigns,

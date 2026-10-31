@@ -34,7 +34,8 @@ class Start implements HttpGetActionInterface
      */
     public function execute()
     {
-        if (!$this->state->start((string) $this->request->getParam('p', ''))) {
+        $pParam = $this->request->getParam('p', '');
+        if (!$this->state->start(is_scalar($pParam) ? (string) $pParam : '')) {
             return $this->forwardFactory->create()->forward('noroute');
         }
         return $this->redirectFactory->create()->setUrl($this->storeManager->getStore()->getBaseUrl());

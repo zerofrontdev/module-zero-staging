@@ -11,6 +11,7 @@ use Magento\Eav\Model\Config as EavConfig;
 use Magento\Eav\Model\Entity\Attribute\AbstractAttribute;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\EntityManager\MetadataPool;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Indexer\IndexerRegistry;
 use Magento\Store\Model\StoreManagerInterface;
 
@@ -20,7 +21,8 @@ use Magento\Store\Model\StoreManagerInterface;
  * store view without its own value inherits; undoing a change that gave it
  * one removes it again. Global attributes (price, by default) live in
  * All Store Views whatever the change's store view; website ones in every
- * store view of the website.
+ * store view of the website. The conflict check between campaigns counts
+ * the same store views (stores()).
  *
  * Written straight to the tables (no full entity save, so no other
  * attribute is touched), then the entity's indexers that don't run by
@@ -148,14 +150,26 @@ abstract class AbstractEav implements TargetInterface
         }
     }
 
+    public function stores(string $field, int $storeId): array
+    {
+        $attribute = $this->attribute($field);
+        return $attribute ? $this->writeStores($attribute, $storeId) : [$storeId];
+    }
+
     protected function attribute(string $code): ?AbstractAttribute
     {
         $attribute = $this->eavConfig->getAttribute($this->entityType(), $code);
-        return $attribute && $attribute->getId() && !$attribute->isStatic() ? $attribute : null;
+        if (!$attribute || !$attribute->getId() || $attribute->isStatic()) {
+            return null;
+        }
+        // Price attributes take their scope from Catalog Price Scope here.
+        $attribute->getBackend();
+        return $attribute;
     }
 
     /**
-     * Store views a value for this one is written to.
+     * Store views a value for this one is written to; the conflict check
+     * (stores()) uses the same rule.
      *
      * @return int[]
      */
@@ -165,7 +179,12 @@ abstract class AbstractEav implements TargetInterface
             return [0];
         }
         if ($attribute->isScopeWebsite()) {
-            return array_map('intval', $this->storeManager->getStore($storeId)->getWebsite()->getStoreIds());
+            try {
+                $store = $this->storeManager->getStore($storeId);
+            } catch (NoSuchEntityException $e) {
+                return [$storeId];
+            }
+            return array_map('intval', $store->getWebsite()->getStoreIds());
         }
         return [$storeId];
     }

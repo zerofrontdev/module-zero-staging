@@ -23,7 +23,9 @@ Monday.
 | Cart price rule | active, discount amount | no |
 
 Another module adds its own kind with a `Model\Target\TargetInterface` in
-`Model\Target\Pool` (di.xml).
+`Model\Target\Pool` (di.xml). It has to implement `stores()` (the store
+views a value lands in, the rule its `write()` follows), which the conflict
+check below relies on.
 
 ## Using it
 
@@ -41,8 +43,12 @@ Another module adds its own kind with a `Model\Target\TargetInterface` in
   it in the campaign.
 
 Two campaigns can't set the same field of the same entity at the same time
-(the second one is refused, naming the first). Once a campaign is live its
-changes are fixed; its end can still move.
+(the second one is refused, naming the first), counted where the value
+lands: a global field (or a CMS page's title) from any two store views, a
+website-scope one (price, special price, status; price by Catalog Price
+Scope) from store views of one website. After changing Catalog Price Scope,
+save scheduled campaigns again so the check runs. Once a campaign is live
+its changes are fixed; its end can still move.
 
 ## Going live and back
 
@@ -51,12 +57,22 @@ campaigns whose end has come are undone first, then those whose start has
 come go live, so back-to-back campaigns hand fields over cleanly.
 
 - **Going live**, each change keeps the values it replaces (with whether a
-  store view's value was its own or inherited), then writes its own.
+  store view's value was its own or inherited), stored before the change is
+  written: a write that stops halfway still knows them, and a failed change
+  shows them (as "from") for an undo by hand.
+- **Start now, End now and edits** wait a few seconds for a cron run in
+  progress, else say so ("try again in a minute"): a campaign is never
+  started twice, nor edited while it is being applied.
 - **Undoing** writes the kept values back, but only into fields that still
   hold the campaign's value: a price someone changed by hand during the
   campaign keeps that value, and the change says so. An inherited value
   becomes inherited again (the store view's own value is removed).
 - A change whose entity is gone fails on its own; the others go.
+- Known limit: a write that fails partway through a website's store views
+  (a website-scope price, say) leaves the change *failed* with the
+  campaign's value in some of them. Ending the campaign undoes only applied
+  changes, so those values stay until someone puts them back by hand; the
+  failed change shows the kept values ("from") to do it.
 - Pages showing the entities are purged by their cache tags (built-in page
   cache or Varnish). Catalog rule changes reindex the rule's products.
 - `bin/magento zero:staging:list` lists every campaign (UTC).
@@ -86,3 +102,5 @@ Zero_Cms and Zero_Banner (Packagist) and the Magento cron.
 
 Tables: `zero_staging_campaign`, `zero_staging_change`. ACL:
 `Zero_Staging::staging` (Content > Staging).
+
+What changed in each release: [CHANGELOG.md](CHANGELOG.md).

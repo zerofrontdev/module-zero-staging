@@ -95,6 +95,12 @@ class BannerSlide implements TargetInterface
         $this->slideResource->save($slide);
     }
 
+    /** One value for every store view. */
+    public function stores(string $field, int $storeId): array
+    {
+        return [0];
+    }
+
     public function cacheTags(int $id): array
     {
         $bannerId = (int) $this->load($id)->getData('banner_id');

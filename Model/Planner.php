@@ -8,20 +8,31 @@ declare(strict_types=1);
 namespace Zero\Staging\Model;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Lock\LockManagerInterface;
 use Zero\Staging\Model\Target\Pool;
 
 /**
  * What the admin does to campaigns, checked: times that make sense, no two
  * campaigns setting the same field of the same entity at the same time,
  * nothing edited once it went live except its name and its end.
+ *
+ * Every change runs under the cron's lock (Runner::LOCK), checked inside it:
+ * Start now can't race the minute's run into starting a campaign twice, and
+ * a campaign or change isn't edited or deleted while the run applies it. A
+ * run in progress is waited for a few seconds, then the admin is told to
+ * try again.
  */
 class Planner
 {
+    /** Seconds an admin action waits for a cron run in progress. */
+    public const LOCK_WAIT = 5;
+
     public function __construct(
         private readonly Campaigns $campaigns,
         private readonly Pool $targets,
         private readonly Applier $applier,
-        private readonly Clock $clock
+        private readonly Clock $clock,
+        private readonly LockManagerInterface $lockManager
     ) {
     }
 
@@ -30,6 +41,14 @@ class Planner
      * @throws LocalizedException
      */
     public function saveCampaign(array $input, ?int $id, string $admin): int
+    {
+        return $this->locked(fn (): int => $this->doSaveCampaign($input, $id, $admin));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    private function doSaveCampaign(array $input, ?int $id, string $admin): int
     {
         $campaign = $id ? $this->campaigns->get($id) : null;
         if ($id && !$campaign) {
@@ -80,6 +99,14 @@ class Planner
      */
     public function saveChange(int $campaignId, string $target, int $entityId, int $storeId, array $data): int
     {
+        return $this->locked(fn (): int => $this->doSaveChange($campaignId, $target, $entityId, $storeId, $data));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    private function doSaveChange(int $campaignId, string $target, int $entityId, int $storeId, array $data): int
+    {
         $campaign = $this->scheduled($campaignId);
         $handler = $this->targets->get($target);
         $label = $handler->describe($entityId);
@@ -107,13 +134,15 @@ class Planner
      */
     public function deleteChange(int $changeId): int
     {
-        $change = $this->campaigns->change($changeId);
-        if (!$change) {
-            throw new LocalizedException(__('This change no longer exists.'));
-        }
-        $this->scheduled($change['campaign_id']);
-        $this->campaigns->deleteChange($changeId);
-        return $change['campaign_id'];
+        return $this->locked(function () use ($changeId): int {
+            $change = $this->campaigns->change($changeId);
+            if (!$change) {
+                throw new LocalizedException(__('This change no longer exists.'));
+            }
+            $this->scheduled($change['campaign_id']);
+            $this->campaigns->deleteChange($changeId);
+            return $change['campaign_id'];
+        });
     }
 
     /**
@@ -121,14 +150,16 @@ class Planner
      */
     public function deleteCampaign(int $id): void
     {
-        $campaign = $this->campaigns->get($id);
-        if (!$campaign) {
-            return;
-        }
-        if ($campaign['status'] === Campaigns::ACTIVE) {
-            throw new LocalizedException(__('The campaign is live: end it first.'));
-        }
-        $this->campaigns->delete($id);
+        $this->locked(function () use ($id): void {
+            $campaign = $this->campaigns->get($id);
+            if (!$campaign) {
+                return;
+            }
+            if ($campaign['status'] === Campaigns::ACTIVE) {
+                throw new LocalizedException(__('The campaign is live: end it first.'));
+            }
+            $this->campaigns->delete($id);
+        });
     }
 
     /**
@@ -139,14 +170,16 @@ class Planner
      */
     public function startNow(int $id): array
     {
-        $campaign = $this->scheduled($id);
-        $now = $this->clock->now();
-        if ($campaign['end_at'] !== null && $campaign['end_at'] <= $now) {
-            throw new LocalizedException(__('The campaign\'s end has passed: move it first.'));
-        }
-        $this->checkChanges($id, $now, $campaign['end_at']);
-        $this->campaigns->update($id, ['start_at' => $now]);
-        return $this->applier->start($id, $now);
+        return $this->locked(function () use ($id): array {
+            $campaign = $this->scheduled($id);
+            $now = $this->clock->now();
+            if ($campaign['end_at'] !== null && $campaign['end_at'] <= $now) {
+                throw new LocalizedException(__('The campaign\'s end has passed: move it first.'));
+            }
+            $this->checkChanges($id, $now, $campaign['end_at']);
+            $this->campaigns->update($id, ['start_at' => $now]);
+            return $this->applier->start($id, $now);
+        });
     }
 
     /**
@@ -157,13 +190,35 @@ class Planner
      */
     public function endNow(int $id): array
     {
-        $campaign = $this->campaigns->get($id);
-        if (!$campaign || $campaign['status'] !== Campaigns::ACTIVE) {
-            throw new LocalizedException(__('Only a live campaign with an end can be ended.'));
+        return $this->locked(function () use ($id): array {
+            $campaign = $this->campaigns->get($id);
+            if (!$campaign || $campaign['status'] !== Campaigns::ACTIVE) {
+                throw new LocalizedException(__('Only a live campaign with an end can be ended.'));
+            }
+            $now = $this->clock->now();
+            $this->campaigns->update($id, ['end_at' => $now]);
+            return $this->applier->end($id, $now);
+        });
+    }
+
+    /**
+     * Runs $work under the cron's lock, released whatever happens. Never
+     * nested: the database lock backend keeps only one lock per connection.
+     *
+     * @throws LocalizedException When a cron run holds it longer than LOCK_WAIT
+     */
+    private function locked(callable $work): mixed
+    {
+        if (!$this->lockManager->lock(Runner::LOCK, self::LOCK_WAIT)) {
+            throw new LocalizedException(
+                __('Campaigns are being started or ended right now. Try again in a minute.')
+            );
         }
-        $now = $this->clock->now();
-        $this->campaigns->update($id, ['end_at' => $now]);
-        return $this->applier->end($id, $now);
+        try {
+            return $work();
+        } finally {
+            $this->lockManager->unlock(Runner::LOCK);
+        }
     }
 
     /**

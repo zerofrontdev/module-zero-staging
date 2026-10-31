@@ -61,6 +61,17 @@ interface TargetInterface
     public function write(int $id, int $storeId, array $values): void;
 
     /**
+     * Store views a value of $field set for $storeId is written to: [0] for
+     * a value that is one for the whole entity (a global attribute, a CMS
+     * page's title), every store view of the website for a website-scope
+     * one. Two campaigns conflict only where these overlap, so it has to be
+     * the rule write() follows.
+     *
+     * @return int[]
+     */
+    public function stores(string $field, int $storeId): array;
+
+    /**
      * Page and block cache tags to clean once the entity changed.
      *
      * @return string[]

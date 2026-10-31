@@ -113,7 +113,9 @@ class State
     {
         if (!$this->loaded) {
             $this->loaded = true;
-            $value = (string) $this->cookieManager->getCookie(self::COOKIE, '');
+            $value = $this->cookieManager->getCookie(self::COOKIE, '');
+            // A cookie sent as an array (zero_staging_preview[a]=1) counts as none.
+            $value = is_string($value) ? $value : '';
             $this->payload = $value !== '' ? $this->link->decode($value) : null;
         }
         return $this->payload;

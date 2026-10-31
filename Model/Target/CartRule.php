@@ -85,6 +85,12 @@ class CartRule implements TargetInterface
         $this->ruleResource->save($rule);
     }
 
+    /** One value for every store view. */
+    public function stores(string $field, int $storeId): array
+    {
+        return [0];
+    }
+
     public function cacheTags(int $id): array
     {
         return [];
