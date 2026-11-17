@@ -103,4 +103,6 @@ Zero_Cms and Zero_Banner (Packagist) and the Magento cron.
 Tables: `zero_staging_campaign`, `zero_staging_change`. ACL:
 `Zero_Staging::staging` (Content > Staging).
 
+AI Assistant tools for this module: the bridge module `Zero_StagingAiAssistant` (needs Zero_AiAssistant too).
+
 What changed in each release: [CHANGELOG.md](CHANGELOG.md).
