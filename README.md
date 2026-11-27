@@ -2,13 +2,29 @@
 
 Campaigns of changes that go live together at a set minute and, when the
 campaign has an end, are undone together then. Preview the store as of any
-moment before it happens; visitors see nothing early. Part of the Zero
-Enterprise set (licensed, from the 0 Marketplace's Composer repository).
+moment before it happens; visitors see nothing early. Free and open source
+(OSL-3.0 / AFL-3.0), from Packagist.
 
 Black Friday, planned in October: Affirm Water Bottle at $4.90, a Black
 Friday name on it, the hero's first slide saying "30% off bags", the 30%
 cart rule switched on, all live at 07:00 on the 27th, undone at 07:00 on
 Monday.
+
+## Install
+
+Requires Magento Open Source 2.4.7–2.4.9 and PHP 8.2–8.4 with the GD extension built with WebP (`php -r 'var_dump(function_exists("imagewebp"));'` says `true`; Magento's own PHP requirements cover the rest). Without WebP in GD, Zero skips its WebP image copies and serves the originals.
+
+```bash
+composer require zerofront/module-zero-staging
+bin/magento setup:upgrade
+bin/magento setup:di:compile           # production mode
+bin/magento setup:static-content:deploy # production mode
+bin/magento cache:flush
+```
+
+Composer installs `zerofront/module-zero-core`, `zerofront/module-zero-cms`, `zerofront/module-zero-banner` with it.
+
+Part of [`zerofront/zero`](https://zerofront.dev), which installs the Zero theme and every Zero module at once.
 
 ## What a campaign can change
 
@@ -96,8 +112,7 @@ effect when the campaign starts.
 
 ## Install
 
-Licensed: `composer require zerofront/module-zero-staging` with the key from
-My Account > Licenses, then `bin/magento setup:upgrade`. Needs Zero_Core,
+`composer require zerofront/module-zero-staging`, then `bin/magento setup:upgrade`. Needs Zero_Core,
 Zero_Cms and Zero_Banner (Packagist) and the Magento cron.
 
 Tables: `zero_staging_campaign`, `zero_staging_change`. ACL:
@@ -106,3 +121,12 @@ Tables: `zero_staging_campaign`, `zero_staging_change`. ACL:
 AI Assistant tools for this module: the bridge module `Zero_StagingAiAssistant` (needs Zero_AiAssistant too).
 
 What changed in each release: [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+OSL-3.0 or AFL-3.0, your choice: see `NOTICE.md`.
+
+---
+
+Zero is made by [Fixstacks](https://fixstacks.com).
+Documentation: https://zerofront.dev/docs. Demo store: https://demo.zerofront.dev.
